@@ -7,7 +7,13 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/tako/cmak
 add_subdirectory("dependencies/tako")
 include(tako)
 SET(EXECUTABLE ld45)
-add_executable(${EXECUTABLE} "src/Main.cpp")
+add_executable(${EXECUTABLE}
+        "src/Main.cpp"
+        "src/Entity.hpp"
+        "src/Physics.hpp"
+        "src/Player.hpp"
+        "src/Rect.hpp"
+)
 tako_setup(${EXECUTABLE})
 target_link_libraries(${EXECUTABLE} PRIVATE tako)
 
