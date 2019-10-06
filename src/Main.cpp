@@ -9,9 +9,10 @@ namespace
     constexpr float jumpPeak = 0.5f;
     constexpr float jumpVelocity = 2 * jumpHeight / jumpPeak;
     constexpr float gravity = -2 * jumpHeight / (jumpPeak * jumpPeak);
-    constexpr float worldLeft = -256;
-    constexpr float worldRight = 256;
+    constexpr float worldLeft = -64;
+    constexpr float worldRight = 1024;
     constexpr float acceleration = 0.2f;
+    constexpr tako::Vector2 playerSpawn(0, 30);
 }
 struct State
 {
@@ -44,11 +45,22 @@ void tako::Setup(PixelArtDrawer* drawer)
     drawer->AutoScale();
     drawer->SetCameraPosition({0, 0});
     Physics::RegisterEntity(&state.player);
-    AddBlock({0, -2000, 2000, 4000});
-    AddBlock({-28, 4, 8, 8});
-    AddBlock({60, 8, 32, 16});
-    AddBlock({60 + 64, 8 + 16, 32, 16});
-    AddBlock({60 + 64 + 64, 8 + 16 + 16, 32, 16});
+    AddBlock({0, -2000, 128, 4000});
+
+    for (int i = 0; i < 4; i++)
+    {
+        AddBlock(Rect(112 + i * 64.0f, -8, 32, 16));
+    }
+
+    for (int i = 0; i < 4; i++)
+    {
+        AddBlock(Rect(368 + i * 64, 0 + i * 16, 32, 16));
+    }
+
+    AddBlock(Rect(624+16+32, -32, 128, 200));
+    //AddBlock({60, 8, 32, 16});
+    //AddBlock({60 + 64, 8 + 16, 32, 16});
+    //AddBlock({60 + 64 + 64, 8 + 16 + 16, 32, 16});
 }
 
 void tako::Update(tako::Input* input, float dt)
@@ -75,6 +87,11 @@ void tako::Update(tako::Input* input, float dt)
 
     state.player.position.x = std::max(worldLeft + state.player.size.x / 2, std::min(state.player.position.x, worldRight - state.player.size.x / 2));
 
+    if (state.player.position.y < -400)
+    {
+        state.player.position = playerSpawn;
+        state.player.velocity = {};
+    }
 
     if (tako::mathf::abs(state.cameraTarget.x - state.player.position.x) > 32 || tako::mathf::abs(state.cameraTarget.x - state.cameraPosition.x) > 16)
     {
@@ -82,9 +99,10 @@ void tako::Update(tako::Input* input, float dt)
         state.cameraTarget.x = std::max(worldLeft + extents.x, std::min(state.player.position.x, worldRight - extents.x));
     }
 
-    if (state.player.grounded || state.player.position.y + tako::Graphics->GetCameraViewSize().y / 4 < state.cameraTarget.y)
+    auto cameraYOffset = tako::Graphics->GetCameraViewSize().y / 10;
+    if (state.player.grounded || state.player.position.y + cameraYOffset < state.cameraTarget.y)
     {
-        state.cameraTarget.y = state.player.position.y + tako::Graphics->GetCameraViewSize().y / 4;
+        state.cameraTarget.y = state.player.position.y + cameraYOffset;
     }
 
     state.cameraPosition += (state.cameraTarget - state.cameraPosition) * dt * 2;
