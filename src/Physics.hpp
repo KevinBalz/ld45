@@ -76,10 +76,7 @@ public:
             newYRect.y += movement.movement.y;
             if (!CheckCollision(newYRect, movement.entity))
             {
-                if (movement.entity->position.y < newYRect.y)
-                {
-                    movement.entity->SetGrounded(false);
-                }
+                movement.entity->SetGrounded(false);
                 movement.entity->position.y = newYRect.y;
             }
             else
@@ -89,10 +86,7 @@ public:
 
                 if (prevRound != nextRound)
                 {
-                    if (nextRound < prevRound)
-                    {
-                        movement.entity->SetGrounded(true);
-                    }
+                    movement.entity->SetGrounded(nextRound < prevRound);
                     newYRect.y = std::round(newYRect.y);
                     if (!CheckCollision(newYRect, movement.entity))
                     {
