@@ -22,8 +22,13 @@ struct State
     tako::Vector2 cameraTarget;
     tako::Vector2 playerSpawn;
     std::vector<Powerup> powerups;
+    float fadeValue = 255;
+    float fadeTarget = 0;
+    bool gameCompleted = false;
     Level level;
 } state;
+
+tako::Texture* gameWon;
 
 tako::Vector2 FitCameraTargetIntoBounds(tako::Vector2 target, Rect bounds, tako::Vector2 extents)
 {
@@ -36,6 +41,7 @@ tako::Vector2 FitCameraTargetIntoBounds(tako::Vector2 target, Rect bounds, tako:
 
 void tako::Setup(PixelArtDrawer* drawer)
 {
+    gameWon = drawer->CreateTexture(tako::Bitmap::FromFile("/gamewon.png"));
     auto playerTex = drawer->CreateTexture(tako::Bitmap::FromFile("/Player.png"));
     auto powerupTex = drawer->CreateTexture(tako::Bitmap::FromFile("/Powerup.png"));
     drawer->SetClearColor({"#608FCF"});
@@ -141,14 +147,28 @@ void tako::Update(tako::Input* input, float dt)
     state.player.velocity.y += gravity * dt;
     Physics::Update(dt);
 
-    if (state.player.position.y < -400)
-    {
-        state.player.position = state.playerSpawn;
-        state.player.velocity = {};
-    }
-
     auto bounds = state.level.GetBounds();
     auto extents = tako::Graphics->GetCameraViewSize() / 2;
+    if (state.player.position.y < -5000)
+    {
+        state.player.position = state.playerSpawn;
+        state.cameraPosition = state.cameraTarget = FitCameraTargetIntoBounds(state.player.position, bounds, extents);
+        state.player.velocity = {};
+        if (!state.gameCompleted)
+        {
+            state.fadeTarget = 0;
+        }
+    }
+    else if (state.player.position.y < -32)
+    {
+        state.fadeTarget = 255;
+    }
+    if (state.player.position.x > bounds.w)
+    {
+        state.fadeTarget = 255;
+        state.gameCompleted = true;
+    }
+    
     if (tako::mathf::abs(state.cameraTarget.x - state.player.position.x) > 32 || tako::mathf::abs(state.cameraTarget.x - state.cameraPosition.x) > 16)
     {
         state.cameraTarget.x = state.player.position.x;
@@ -162,6 +182,13 @@ void tako::Update(tako::Input* input, float dt)
 
     state.cameraTarget = FitCameraTargetIntoBounds(state.cameraTarget, bounds, extents);
     state.cameraPosition += (state.cameraTarget - state.cameraPosition) * dt * 2;
+    
+    if (state.fadeValue != state.fadeTarget)
+    {
+        state.fadeValue = state.fadeTarget < state.fadeValue ?
+                std::max(state.fadeTarget, state.fadeValue - 100 * dt) :
+                std::min(state.fadeTarget, state.fadeValue + 100 * dt);
+    }
 }
 
 void DrawEntity(tako::PixelArtDrawer* drawer, const Entity& entity)
@@ -180,5 +207,14 @@ void tako::Draw(tako::PixelArtDrawer* drawer)
         DrawEntity(drawer, powerup);
     }
     DrawEntity(drawer, state.player);
+    if (state.fadeValue > 0)
+    {
+        auto view = drawer->GetCameraViewSize();
+        drawer->DrawRectangle(state.cameraPosition.x - view.x / 2, state.cameraPosition.y + view.y / 2, view.x, view.y, {0, 0, 0, static_cast<tako::U8>(state.fadeValue)});
+    }
+    if (state.gameCompleted && state.fadeValue >= 255)
+    {
+        drawer->DrawImage(state.cameraPosition.x - 53, state.cameraPosition.y + 3, 106, 7, gameWon);
+    }
 }
 
