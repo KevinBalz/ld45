@@ -5,6 +5,7 @@
 #include "Level.hpp"
 #include "Powerup.hpp"
 #include <algorithm>
+#include <emscripten/html5.h>
 
 namespace
 {
@@ -87,6 +88,11 @@ void tako::Update(tako::Input* input, float dt)
     const float speed = 64;
     float targetVelocity = 0;
 
+    if (input->GetKeyDown(tako::Key::Enter))
+    {
+        emscripten_request_fullscreen(0, true);
+    }
+
     state.powerups.erase(std::remove_if(state.powerups.begin(), state.powerups.end(), [&](Powerup& power)
     {
         if (Rect::Overlap(state.player.GetRect(), power.GetRect()))
@@ -103,7 +109,7 @@ void tako::Update(tako::Input* input, float dt)
         state.player.canDoubleJump = true;
     }
 
-    if (input->GetKeyDown(tako::Key::W) && state.player.gainedJump)
+    if ((input->GetKeyDown(tako::Key::W) || input->GetKeyDown(tako::Key::Up) || input->GetKeyDown(tako::Key::Space)) && state.player.gainedJump)
     {
         bool canJump = false;
         if (state.player.grounded)
@@ -122,11 +128,11 @@ void tako::Update(tako::Input* input, float dt)
         }
 
     }
-    if (input->GetKey(tako::Key::A) && state.player.gainedWalk)
+    if ((input->GetKey(tako::Key::A) || input->GetKey(tako::Key::Left))&& state.player.gainedWalk)
     {
         targetVelocity -= speed;
     }
-    if (input->GetKey(tako::Key::D) && state.player.gainedWalk)
+    if ((input->GetKey(tako::Key::D) || input->GetKey(tako::Key::Right)) && state.player.gainedWalk)
     {
         targetVelocity += speed;
     }
