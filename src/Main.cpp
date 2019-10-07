@@ -22,19 +22,22 @@ struct State
     Level level;
 } state;
 
-std::array<tako::Sprite*, 12> tileset;
-std::vector<Rect> levelRects;
-
-void AddBlock(Rect block)
+tako::Vector2 FitCameraTargetIntoBounds(tako::Vector2 target, Rect bounds, tako::Vector2 extents)
 {
-    Physics::AddCollider(block);
-    levelRects.push_back(ToRenderRect(block));
+    tako::Vector2 newTarget;
+    newTarget.x = std::max(bounds.x + extents.x, std::min(target.x, bounds.w - extents.x));
+    newTarget.y = std::max(bounds.y + extents.y, std::min(target.y, bounds.h - extents.y));
+
+    return newTarget;
 }
 
 void tako::Setup(PixelArtDrawer* drawer)
 {
-
+    drawer->SetClearColor({"#608FCF"});
+    drawer->SetTargetSize(240, 135);
+    drawer->AutoScale();
     auto tex = drawer->CreateTexture(tako::Bitmap::FromFile("/Tileset.png"));
+    std::array<tako::Sprite*, 12> tileset;
     for (int i = 0; i < 12; i++)
     {
         int x = i % 3;
@@ -42,17 +45,9 @@ void tako::Setup(PixelArtDrawer* drawer)
         tileset[i] = drawer->CreateSprite(tex, x * 16, y * 16, 16, 16);
     }
     state.level.LoadLevel("/Level.txt", tileset);
-    //state.player.size = {16, 16};
-    //state.player.position = state.level.GetSpawn();
     auto spawn = state.level.GetSpawn();
     state.player = {spawn.x, spawn.y, 16, 16};
-    //state.player.position = {200, 60};
-    LOG("spawn: {} {}", state.player.position.x, state.player.position.y);
-    state.cameraPosition = state.cameraTarget = state.player.position;
-    drawer->SetClearColor({"#608FCF"});
-    drawer->SetTargetSize(240, 135);
-    drawer->AutoScale();
-    drawer->SetCameraPosition({0, 0});
+    state.cameraPosition = state.cameraTarget = FitCameraTargetIntoBounds(state.player.position, state.level.GetBounds(), tako::Graphics->GetCameraViewSize() / 2);
     Physics::RegisterEntity(&state.player);
 }
 
@@ -72,14 +67,10 @@ void tako::Update(tako::Input* input, float dt)
     {
         targetVelocity += speed;
     }
-    //movement.normalize();
+
     state.player.velocity.x = acceleration * targetVelocity + (1 - acceleration) * state.player.velocity.x;
     state.player.velocity.y += gravity * dt;
     Physics::Update(dt);
-
-
-    //state.player.position.x = std::max(bounds.x + state.player.size.x / 2, std::min(state.player.position.x, bounds.w - state.player.size.x / 2));
-    //state.player.position.y = std::max(bounds.y + state.player.size.y / 2, std::min(state.player.position.y, bounds.h - state.player.size.y / 2));
 
     if (state.player.position.y < -400)
     {
@@ -91,15 +82,16 @@ void tako::Update(tako::Input* input, float dt)
     auto extents = tako::Graphics->GetCameraViewSize() / 2;
     if (tako::mathf::abs(state.cameraTarget.x - state.player.position.x) > 32 || tako::mathf::abs(state.cameraTarget.x - state.cameraPosition.x) > 16)
     {
-        state.cameraTarget.x = std::max(bounds.x + extents.x, std::min(state.player.position.x, bounds.w - extents.x));
+        state.cameraTarget.x = state.player.position.x;
     }
 
     auto cameraYOffset = tako::Graphics->GetCameraViewSize().y / 10;
     if (state.player.grounded || state.player.position.y + cameraYOffset < state.cameraTarget.y)
     {
-        state.cameraTarget.y = std::max(bounds.y + extents.y, std::min(state.player.position.y + cameraYOffset, bounds.h - extents.y));
+        state.cameraTarget.y = state.player.position.y + cameraYOffset;
     }
 
+    state.cameraTarget = FitCameraTargetIntoBounds(state.cameraTarget, bounds, extents);
     state.cameraPosition += (state.cameraTarget - state.cameraPosition) * dt * 2;
 }
 
