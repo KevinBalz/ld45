@@ -11,7 +11,7 @@ namespace
     constexpr float jumpHeight = 32;
     constexpr float jumpPeak = 0.5f;
     constexpr float jumpVelocity = 2 * jumpHeight / jumpPeak;
-    constexpr float gravity = -2 * jumpHeight / (jumpPeak * jumpPeak); 
+    constexpr float gravity = -2 * jumpHeight / (jumpPeak * jumpPeak);
     constexpr float acceleration = 0.2f;
 }
 struct State
@@ -68,6 +68,13 @@ void tako::Setup(PixelArtDrawer* drawer)
                 player.gainedJump = true;
             });
         }
+        if (c == 'D')
+        {
+            state.powerups.emplace_back(x, y, 16, 16, powerupTex, [](Player& player)
+            {
+                player.gainedDoubleJump = true;
+            });
+        }
     });
     auto spawn = state.playerSpawn;
     state.player = {spawn.x, spawn.y, 12, 12, playerTex};
@@ -91,9 +98,29 @@ void tako::Update(tako::Input* input, float dt)
         return false;
     }), state.powerups.end());
 
-    if (input->GetKeyDown(tako::Key::W) && state.player.grounded && state.player.gainedJump)
+    if (state.player.grounded)
     {
-        state.player.velocity.y = jumpVelocity;
+        state.player.canDoubleJump = true;
+    }
+
+    if (input->GetKeyDown(tako::Key::W) && state.player.gainedJump)
+    {
+        bool canJump = false;
+        if (state.player.grounded)
+        {
+            canJump = true;
+        }
+        else if (state.player.gainedDoubleJump && state.player.canDoubleJump)
+        {
+            state.player.canDoubleJump = false;
+            canJump = true;
+        }
+
+        if (canJump)
+        {
+            state.player.velocity.y = jumpVelocity;
+        }
+
     }
     if (input->GetKey(tako::Key::A) && state.player.gainedWalk)
     {

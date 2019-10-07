@@ -10,6 +10,8 @@ public:
     bool grounded = false;
     bool gainedWalk = false;
     bool gainedJump = false;
+    bool gainedDoubleJump = false;
+    bool canDoubleJump = false;
 
     tako::Vector2 Velocity() const override
     {
