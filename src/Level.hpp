@@ -83,7 +83,7 @@ public:
             }
         }
 
-        boundRight = maxX * 16;
+        boundRight = (maxX-1) * 16;
         boundTop = maxY * 16;
     }
 
