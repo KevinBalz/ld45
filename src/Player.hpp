@@ -5,9 +5,11 @@ class Player : public IMoveable
 {
 public:
     Player() {}
-    Player(float x, float y, float w, float h) : Entity(x, y, w, h, {100, 0, 255, 255}) {}
+    Player(float x, float y, float w, float h, tako::Texture* img) : Entity(x, y, w, h, img) {}
     tako::Vector2 velocity;
     bool grounded = false;
+    bool gainedWalk = false;
+    bool gainedJump = false;
 
     tako::Vector2 Velocity() const override
     {

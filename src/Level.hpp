@@ -28,7 +28,7 @@ class Level
 {
 public:
 
-    void LoadLevel(const char* fileName, const std::array<tako::Sprite*, 12>& tileset)
+    void LoadLevel(const char* fileName, const std::array<tako::Sprite*, 12>& tileset, std::function<void(char,float,float)> callback)
     {
         constexpr size_t bufferSize = 1024 * 1024;
         std::array<tako::U8, bufferSize> buffer;
@@ -75,9 +75,9 @@ public:
                 renderTiles.push_back({tileset[tileMap[tileChar]],rect});
                 Physics::AddCollider(ToLevelRect(rect));
             }
-            if (tileChar == 'P')
+            else
             {
-                playerSpawn = tako::Vector2(x + 8, y - 8);
+                callback(tileChar, x + 8, y - 8);
             }
         }
 
@@ -98,10 +98,6 @@ public:
         return {0, 0, boundRight, boundTop};
     }
 
-    inline tako::Vector2 GetSpawn()
-    {
-        return playerSpawn;
-    }
 private:
     struct RenderTile
     {
@@ -112,7 +108,6 @@ private:
     };
 
     std::vector<RenderTile> renderTiles;
-    tako::Vector2 playerSpawn;
     float boundTop;
     float boundRight;
 };

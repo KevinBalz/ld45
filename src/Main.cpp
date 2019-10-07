@@ -3,15 +3,15 @@
 #include "Physics.hpp"
 #include "Player.hpp"
 #include "Level.hpp"
+#include "Powerup.hpp"
+#include <algorithm>
 
 namespace
 {
     constexpr float jumpHeight = 32;
     constexpr float jumpPeak = 0.5f;
     constexpr float jumpVelocity = 2 * jumpHeight / jumpPeak;
-    constexpr float gravity = -2 * jumpHeight / (jumpPeak * jumpPeak);
-    //constexpr float worldLeft = -64;
-    //constexpr float worldRight = 1024;
+    constexpr float gravity = -2 * jumpHeight / (jumpPeak * jumpPeak); 
     constexpr float acceleration = 0.2f;
 }
 struct State
@@ -19,6 +19,8 @@ struct State
     Player player;
     tako::Vector2 cameraPosition;
     tako::Vector2 cameraTarget;
+    tako::Vector2 playerSpawn;
+    std::vector<Powerup> powerups;
     Level level;
 } state;
 
@@ -33,6 +35,8 @@ tako::Vector2 FitCameraTargetIntoBounds(tako::Vector2 target, Rect bounds, tako:
 
 void tako::Setup(PixelArtDrawer* drawer)
 {
+    auto playerTex = drawer->CreateTexture(tako::Bitmap::FromFile("/Player.png"));
+    auto powerupTex = drawer->CreateTexture(tako::Bitmap::FromFile("/Powerup.png"));
     drawer->SetClearColor({"#608FCF"});
     drawer->SetTargetSize(240, 135);
     drawer->AutoScale();
@@ -44,9 +48,29 @@ void tako::Setup(PixelArtDrawer* drawer)
         int y = i / 3;
         tileset[i] = drawer->CreateSprite(tex, x * 16, y * 16, 16, 16);
     }
-    state.level.LoadLevel("/Level.txt", tileset);
-    auto spawn = state.level.GetSpawn();
-    state.player = {spawn.x, spawn.y, 16, 16};
+    state.level.LoadLevel("/Level.txt", tileset, [&](char c, float x, float y)
+    {
+        if (c == 'P')
+        {
+            state.playerSpawn = {x, y};
+        }
+        if (c == 'W')
+        {
+            state.powerups.emplace_back(x, y, 16, 16, powerupTex, [](Player& player)
+            {
+                player.gainedWalk = true;
+            });
+        }
+        if (c == 'J')
+        {
+            state.powerups.emplace_back(x, y, 16, 16, powerupTex, [](Player& player)
+            {
+                player.gainedJump = true;
+            });
+        }
+    });
+    auto spawn = state.playerSpawn;
+    state.player = {spawn.x, spawn.y, 12, 12, playerTex};
     state.cameraPosition = state.cameraTarget = FitCameraTargetIntoBounds(state.player.position, state.level.GetBounds(), tako::Graphics->GetCameraViewSize() / 2);
     Physics::RegisterEntity(&state.player);
 }
@@ -55,15 +79,27 @@ void tako::Update(tako::Input* input, float dt)
 {
     const float speed = 64;
     float targetVelocity = 0;
-    if (input->GetKeyDown(tako::Key::W) && state.player.grounded)
+
+    state.powerups.erase(std::remove_if(state.powerups.begin(), state.powerups.end(), [&](Powerup& power)
+    {
+        if (Rect::Overlap(state.player.GetRect(), power.GetRect()))
+        {
+            power.PowerUp(state.player);
+            return true;
+        }
+
+        return false;
+    }), state.powerups.end());
+
+    if (input->GetKeyDown(tako::Key::W) && state.player.grounded && state.player.gainedJump)
     {
         state.player.velocity.y = jumpVelocity;
     }
-    if (input->GetKey(tako::Key::A))
+    if (input->GetKey(tako::Key::A) && state.player.gainedWalk)
     {
         targetVelocity -= speed;
     }
-    if (input->GetKey(tako::Key::D))
+    if (input->GetKey(tako::Key::D) && state.player.gainedWalk)
     {
         targetVelocity += speed;
     }
@@ -74,7 +110,7 @@ void tako::Update(tako::Input* input, float dt)
 
     if (state.player.position.y < -400)
     {
-        state.player.position = state.level.GetSpawn();
+        state.player.position = state.playerSpawn;
         state.player.velocity = {};
     }
 
@@ -98,7 +134,7 @@ void tako::Update(tako::Input* input, float dt)
 void DrawEntity(tako::PixelArtDrawer* drawer, const Entity& entity)
 {
     auto rect = ToRenderRect(entity.GetRect());
-    drawer->DrawRectangle(rect.x, rect.y, rect.w, rect.h, entity.color);
+    drawer->DrawImage(rect.x, rect.y, rect.w, rect.h, entity.image);
 }
 
 void tako::Draw(tako::PixelArtDrawer* drawer)
@@ -106,6 +142,10 @@ void tako::Draw(tako::PixelArtDrawer* drawer)
     drawer->Clear();
     drawer->SetCameraPosition(state.cameraPosition);
     state.level.Render(drawer);
+    for (auto powerup: state.powerups)
+    {
+        DrawEntity(drawer, powerup);
+    }
     DrawEntity(drawer, state.player);
 }
 

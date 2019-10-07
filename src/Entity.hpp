@@ -1,11 +1,12 @@
 #pragma once
 #include "Rect.hpp"
+#include "Texture.hpp"
 
 class Entity
 {
 public:
     Entity() {}
-    Entity(float x, float y, float w, float h, tako::Color c) : position(x, y), size (w, h), color(c) {}
+    Entity(float x, float y, float w, float h, tako::Texture* image) : position(x, y), size (w, h), image(image) {}
 
     Rect GetRect() const
     {
@@ -22,7 +23,7 @@ public:
 
     tako::Vector2 position;
     tako::Vector2 size;
-    tako::Color color;
+    tako::Texture* image;
 };
 
 class IMoveable : public virtual Entity

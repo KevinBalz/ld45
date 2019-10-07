@@ -14,6 +14,7 @@ add_executable(${EXECUTABLE}
         "src/Player.hpp"
         "src/Rect.hpp"
         "src/Level.hpp"
+        "src/Powerup.hpp"
 )
 tako_setup(${EXECUTABLE})
 target_link_libraries(${EXECUTABLE} PRIVATE tako)
