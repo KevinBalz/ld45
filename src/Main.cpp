@@ -2,6 +2,7 @@
 #include "Entity.hpp"
 #include "Physics.hpp"
 #include "Player.hpp"
+#include "Level.hpp"
 
 namespace
 {
@@ -9,27 +10,20 @@ namespace
     constexpr float jumpPeak = 0.5f;
     constexpr float jumpVelocity = 2 * jumpHeight / jumpPeak;
     constexpr float gravity = -2 * jumpHeight / (jumpPeak * jumpPeak);
-    constexpr float worldLeft = -64;
-    constexpr float worldRight = 1024;
+    //constexpr float worldLeft = -64;
+    //constexpr float worldRight = 1024;
     constexpr float acceleration = 0.2f;
-    constexpr tako::Vector2 playerSpawn(0, 30);
 }
 struct State
 {
     Player player;
     tako::Vector2 cameraPosition;
     tako::Vector2 cameraTarget;
+    Level level;
 } state;
 
 std::array<tako::Sprite*, 12> tileset;
 std::vector<Rect> levelRects;
-
-Rect ToRenderRect(Rect r)
-{
-    r.x -= r.w/2;
-    r.y += r.h/2;
-    return r;
-}
 
 void AddBlock(Rect block)
 {
@@ -39,36 +33,27 @@ void AddBlock(Rect block)
 
 void tako::Setup(PixelArtDrawer* drawer)
 {
-    auto tex = drawer->CreateTexture(tako::Bitmap::FromFile("./Tileset.png"));
+
+    auto tex = drawer->CreateTexture(tako::Bitmap::FromFile("/Tileset.png"));
     for (int i = 0; i < 12; i++)
     {
         int x = i % 3;
         int y = i / 3;
         tileset[i] = drawer->CreateSprite(tex, x * 16, y * 16, 16, 16);
     }
-    state.player = {0, 30, 16, 16};
+    state.level.LoadLevel("/Level.txt", tileset);
+    //state.player.size = {16, 16};
+    //state.player.position = state.level.GetSpawn();
+    auto spawn = state.level.GetSpawn();
+    state.player = {spawn.x, spawn.y, 16, 16};
+    //state.player.position = {200, 60};
+    LOG("spawn: {} {}", state.player.position.x, state.player.position.y);
     state.cameraPosition = state.cameraTarget = state.player.position;
     drawer->SetClearColor({"#608FCF"});
     drawer->SetTargetSize(240, 135);
     drawer->AutoScale();
     drawer->SetCameraPosition({0, 0});
     Physics::RegisterEntity(&state.player);
-    AddBlock({0, -2000, 128, 4000});
-
-    for (int i = 0; i < 4; i++)
-    {
-        AddBlock(Rect(112 + i * 64.0f, -8, 32, 16));
-    }
-
-    for (int i = 0; i < 4; i++)
-    {
-        AddBlock(Rect(368 + i * 64, 0 + i * 16, 32, 16));
-    }
-
-    AddBlock(Rect(624+16+32, -32, 128, 200));
-    //AddBlock({60, 8, 32, 16});
-    //AddBlock({60 + 64, 8 + 16, 32, 16});
-    //AddBlock({60 + 64 + 64, 8 + 16 + 16, 32, 16});
 }
 
 void tako::Update(tako::Input* input, float dt)
@@ -93,28 +78,29 @@ void tako::Update(tako::Input* input, float dt)
     Physics::Update(dt);
 
 
-    state.player.position.x = std::max(worldLeft + state.player.size.x / 2, std::min(state.player.position.x, worldRight - state.player.size.x / 2));
+    //state.player.position.x = std::max(bounds.x + state.player.size.x / 2, std::min(state.player.position.x, bounds.w - state.player.size.x / 2));
+    //state.player.position.y = std::max(bounds.y + state.player.size.y / 2, std::min(state.player.position.y, bounds.h - state.player.size.y / 2));
 
     if (state.player.position.y < -400)
     {
-        state.player.position = playerSpawn;
+        state.player.position = state.level.GetSpawn();
         state.player.velocity = {};
     }
 
+    auto bounds = state.level.GetBounds();
+    auto extents = tako::Graphics->GetCameraViewSize() / 2;
     if (tako::mathf::abs(state.cameraTarget.x - state.player.position.x) > 32 || tako::mathf::abs(state.cameraTarget.x - state.cameraPosition.x) > 16)
     {
-        auto extents = tako::Graphics->GetCameraViewSize() / 2;
-        state.cameraTarget.x = std::max(worldLeft + extents.x, std::min(state.player.position.x, worldRight - extents.x));
+        state.cameraTarget.x = std::max(bounds.x + extents.x, std::min(state.player.position.x, bounds.w - extents.x));
     }
 
     auto cameraYOffset = tako::Graphics->GetCameraViewSize().y / 10;
     if (state.player.grounded || state.player.position.y + cameraYOffset < state.cameraTarget.y)
     {
-        state.cameraTarget.y = state.player.position.y + cameraYOffset;
+        state.cameraTarget.y = std::max(bounds.y + extents.y, std::min(state.player.position.y + cameraYOffset, bounds.h - extents.y));
     }
 
     state.cameraPosition += (state.cameraTarget - state.cameraPosition) * dt * 2;
-    //LOG("Player: {} {}", state.player.position.x, state.player.position.y);
 }
 
 void DrawEntity(tako::PixelArtDrawer* drawer, const Entity& entity)
@@ -127,20 +113,7 @@ void tako::Draw(tako::PixelArtDrawer* drawer)
 {
     drawer->Clear();
     drawer->SetCameraPosition(state.cameraPosition);
-    //drawer->DrawRectangle(-1000, 0, 2000, 3000, {"#B5651D"});
-    //drawer->DrawRectangle(-32, 8, 8, 8, {"#B5651D"});
-    for (auto rect : levelRects)
-    {
-        drawer->DrawRectangle(rect.x, rect.y, rect.w, rect.h, {"#622E4C"});
-    }
-    //drawer->DrawRectangle(state.position.x, state.position.y, 16, 16, {100, 0, 255, 255});
-    //drawer->DrawRectangle(-1000, 0, 2000, 2000, {"#622E4C"});
-    drawer->DrawSprite(-64, 0, 16, 16, tileset[0]);
-    for (int i = 0; i < 6; i++)
-    {
-        drawer->DrawSprite(-48 + i * 16, 0, 16, 16, tileset[1]);
-    }
-    drawer->DrawSprite(48, 0, 16, 16, tileset[2]);
+    state.level.Render(drawer);
     DrawEntity(drawer, state.player);
 }
 

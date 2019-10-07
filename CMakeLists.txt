@@ -13,6 +13,7 @@ add_executable(${EXECUTABLE}
         "src/Physics.hpp"
         "src/Player.hpp"
         "src/Rect.hpp"
+        "src/Level.hpp"
 )
 tako_setup(${EXECUTABLE})
 target_link_libraries(${EXECUTABLE} PRIVATE tako)

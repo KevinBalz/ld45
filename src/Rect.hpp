@@ -35,3 +35,17 @@ struct Rect
         return std::abs(a.y - b.y) < a.h / 2 + b.h / 2;
     }
 };
+
+Rect ToRenderRect(Rect r)
+{
+    r.x -= r.w/2;
+    r.y += r.h/2;
+    return r;
+}
+
+Rect ToLevelRect(Rect r)
+{
+    r.x += r.w/2;
+    r.y -= r.h/2;
+    return r;
+}
