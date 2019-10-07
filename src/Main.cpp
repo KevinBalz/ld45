@@ -21,6 +21,7 @@ struct State
     tako::Vector2 cameraTarget;
 } state;
 
+std::array<tako::Sprite*, 12> tileset;
 std::vector<Rect> levelRects;
 
 Rect ToRenderRect(Rect r)
@@ -38,9 +39,16 @@ void AddBlock(Rect block)
 
 void tako::Setup(PixelArtDrawer* drawer)
 {
+    auto tex = drawer->CreateTexture(tako::Bitmap::FromFile("./Tileset.png"));
+    for (int i = 0; i < 12; i++)
+    {
+        int x = i % 3;
+        int y = i / 3;
+        tileset[i] = drawer->CreateSprite(tex, x * 16, y * 16, 16, 16);
+    }
     state.player = {0, 30, 16, 16};
     state.cameraPosition = state.cameraTarget = state.player.position;
-    drawer->SetClearColor({"#87CEEB"});
+    drawer->SetClearColor({"#608FCF"});
     drawer->SetTargetSize(240, 135);
     drawer->AutoScale();
     drawer->SetCameraPosition({0, 0});
@@ -123,9 +131,16 @@ void tako::Draw(tako::PixelArtDrawer* drawer)
     //drawer->DrawRectangle(-32, 8, 8, 8, {"#B5651D"});
     for (auto rect : levelRects)
     {
-        drawer->DrawRectangle(rect.x, rect.y, rect.w, rect.h, {"#B5651D"});
+        drawer->DrawRectangle(rect.x, rect.y, rect.w, rect.h, {"#622E4C"});
     }
     //drawer->DrawRectangle(state.position.x, state.position.y, 16, 16, {100, 0, 255, 255});
+    //drawer->DrawRectangle(-1000, 0, 2000, 2000, {"#622E4C"});
+    drawer->DrawSprite(-64, 0, 16, 16, tileset[0]);
+    for (int i = 0; i < 6; i++)
+    {
+        drawer->DrawSprite(-48 + i * 16, 0, 16, 16, tileset[1]);
+    }
+    drawer->DrawSprite(48, 0, 16, 16, tileset[2]);
     DrawEntity(drawer, state.player);
 }
 
