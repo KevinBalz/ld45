@@ -16,6 +16,8 @@ add_executable(${EXECUTABLE}
         "src/Level.hpp"
         "src/Powerup.hpp"
 )
+configure_file("src/index.html" "./index.html")
+
 tako_setup(${EXECUTABLE})
 target_link_libraries(${EXECUTABLE} PRIVATE tako)
 
