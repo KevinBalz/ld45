@@ -26,6 +26,10 @@ struct State
     float fadeTarget = 0;
     bool gameCompleted = false;
     Level level;
+    tako::AudioClip* jumpClip;
+    tako::AudioClip* landClip;
+    tako::AudioClip* pickupClip;
+    tako::AudioClip* ripClip;
 } state;
 
 tako::Texture* gameWon;
@@ -41,6 +45,10 @@ tako::Vector2 FitCameraTargetIntoBounds(tako::Vector2 target, Rect bounds, tako:
 
 void tako::Setup(PixelArtDrawer* drawer)
 {
+    state.jumpClip = new AudioClip("/Jump.wav");
+    state.landClip = new AudioClip("/Land.wav");
+    state.pickupClip = new AudioClip("/Pickup.wav");
+    state.ripClip = new AudioClip("/RIP.wav");
     gameWon = drawer->CreateTexture(tako::Bitmap::FromFile("/gamewon.png"));
     auto playerTex = drawer->CreateTexture(tako::Bitmap::FromFile("/Player.png"));
     auto powerupTex = drawer->CreateTexture(tako::Bitmap::FromFile("/Powerup.png"));
@@ -104,16 +112,23 @@ void tako::Update(tako::Input* input, float dt)
         if (Rect::Overlap(state.player.GetRect(), power.GetRect()))
         {
             power.PowerUp(state.player);
+            tako::Audio::Play(*state.pickupClip);
             return true;
         }
 
         return false;
     }), state.powerups.end());
 
+    static bool wasGrounded = state.player.grounded;
     if (state.player.grounded)
     {
         state.player.canDoubleJump = true;
+        if (!wasGrounded)
+        {
+            tako::Audio::Play(*state.landClip);
+        }
     }
+    wasGrounded = state.player.grounded;
 
     if ((input->GetKeyDown(tako::Key::W) || input->GetKeyDown(tako::Key::Up) || input->GetKeyDown(tako::Key::Space)) && state.player.gainedJump)
     {
@@ -131,6 +146,7 @@ void tako::Update(tako::Input* input, float dt)
         if (canJump)
         {
             state.player.velocity.y = jumpVelocity;
+            tako::Audio::Play(*state.jumpClip);
         }
 
     }
@@ -154,6 +170,8 @@ void tako::Update(tako::Input* input, float dt)
         state.player.position = state.playerSpawn;
         state.cameraPosition = state.cameraTarget = FitCameraTargetIntoBounds(state.player.position, bounds, extents);
         state.player.velocity = {};
+        state.player.rip = false;
+        
         if (!state.gameCompleted)
         {
             state.fadeTarget = 0;
@@ -162,6 +180,12 @@ void tako::Update(tako::Input* input, float dt)
     else if (state.player.position.y < -32)
     {
         state.fadeTarget = 255;
+        if (!state.player.rip)
+        {
+            tako::Audio::Play(*state.ripClip);
+            state.player.rip = true;
+        }
+        
     }
     if (state.player.position.x > bounds.w)
     {

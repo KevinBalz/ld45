@@ -7,11 +7,12 @@ public:
     Player() {}
     Player(float x, float y, float w, float h, tako::Texture* img) : Entity(x, y, w, h, img) {}
     tako::Vector2 velocity;
-    bool grounded = false;
+    bool grounded = true;
     bool gainedWalk = false;
     bool gainedJump = false;
     bool gainedDoubleJump = false;
     bool canDoubleJump = false;
+    bool rip = false;
 
     tako::Vector2 Velocity() const override
     {
