@@ -55,15 +55,7 @@ void tako::Setup(PixelArtDrawer* drawer)
     drawer->SetClearColor({"#608FCF"});
     drawer->SetTargetSize(240, 135);
     drawer->AutoScale();
-    auto tex = drawer->CreateTexture(tako::Bitmap::FromFile("/Tileset.png"));
-    std::array<tako::Sprite*, 12> tileset;
-    for (int i = 0; i < 12; i++)
-    {
-        int x = i % 3;
-        int y = i / 3;
-        tileset[i] = drawer->CreateSprite(tex, x * 16, y * 16, 16, 16);
-    }
-    state.level.LoadLevel("/Level.txt", tileset, [&](char c, float x, float y)
+    state.level.LoadLevel("/Level.txt", drawer, [&](char c, float x, float y)
     {
         if (c == 'P')
         {

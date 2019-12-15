@@ -30,7 +30,7 @@ class Level
 {
 public:
 
-    void LoadLevel(const char* fileName, const std::array<tako::Sprite*, 12>& tileset, std::function<void(char,float,float)> callback)
+    void LoadLevel(const char* fileName, tako::PixelArtDrawer* drawer, std::function<void(char,float,float)> callback)
     {
         constexpr size_t bufferSize = 1024 * 1024;
         std::array<tako::U8, bufferSize> buffer;
@@ -63,6 +63,11 @@ public:
                 x = 0;
             }
         }
+        width = maxX * 16;
+        height = maxY * 16;
+        auto tileset = tako::Bitmap::FromFile("/Tileset.png");
+        tako::Bitmap map(width, height);
+
         for (int i = 0; i < tileChars.size(); i++)
         {
             int tileX = i % maxX;
@@ -74,8 +79,10 @@ public:
             if (tileMap.count(tileChar) > 0)
             {
                 Rect rect(x, y, 16, 16);
-                renderTiles.push_back({tileset[tileMap[tileChar]],rect});
+                //renderTiles.push_back({tileset[tileMap[tileChar]],rect});
                 Physics::AddCollider(ToLevelRect(rect));
+                auto i = tileMap[tileChar];
+                map.DrawBitmap(tileX * 16, (tileY-1) * 16, (i % 3) * 16, (i / 3) * 16, 16, 16, tileset);
             }
             else
             {
@@ -83,16 +90,21 @@ public:
             }
         }
 
+        mapTexture = drawer->CreateTexture(map);
+
         boundRight = (maxX-1) * 16;
         boundTop = maxY * 16;
     }
 
     void Render(tako::PixelArtDrawer* drawer)
     {
+        /*
         for (auto tile: renderTiles)
         {
             drawer->DrawSprite(tile.rect.x, tile.rect.y, tile.rect.w, tile.rect.h, tile.sprite);
         }
+        */
+       drawer->DrawImage(0, boundTop, width, height, mapTexture);
     }
 
     Rect GetBounds()
@@ -110,6 +122,9 @@ private:
     };
 
     std::vector<RenderTile> renderTiles;
+    tako::Texture* mapTexture;
     float boundTop;
     float boundRight;
+    float width;
+    float height;
 };
